@@ -105,6 +105,8 @@ export class SearchAndSort extends Component {
     onChangeIndex: PropTypes.func,
     onComponentWillUnmount: PropTypes.func,
     onCreate: PropTypes.func,
+    onEdit: PropTypes.func,
+    onDelete: PropTypes.func,
     handleCreateSuccess: PropTypes.func,
     onSelectRow: PropTypes.func,
     path: PropTypes.string,
@@ -117,6 +119,7 @@ export class SearchAndSort extends Component {
     columnWidths: PropTypes.object,
     resultsFormatter: PropTypes.shape({}),
     defaultSort: PropTypes.string,
+    fullWidthContainer: PropTypes.instanceOf(Element),
   };
 
   static defaultProps = {
@@ -124,6 +127,9 @@ export class SearchAndSort extends Component {
     maxSortKeys: 2,
     onComponentWillUnmount: noop,
     onChangeIndex: noop,
+    onCreate: noop,
+    onEdit: noop,
+    onDelete: noop,
     handleCreateSuccess: noop,
     massageNewRecord: noop,
     defaultSort: '',
@@ -144,6 +150,10 @@ export class SearchAndSort extends Component {
     this.lastNonNullResultCount = undefined;
     this.initialQuery = queryString.parse(routePath);
     this.connectedViewRecord = stripes.connect(ViewRecordComponent);
+  }
+
+  componentDidMount() {
+    this.setInitialSortQueryParam();
   }
 
   componentWillReceiveProps(nextProps) {  // eslint-disable-line react/no-deprecated
@@ -196,6 +206,18 @@ export class SearchAndSort extends Component {
     return { id: recordId };
   }
 
+  setInitialSortQueryParam() {
+    const {
+      defaultSort,
+      location: { search },
+    } = this.props;
+
+    const queryParams = queryString.parse(search);
+    const sortOrder = queryParams.sort || defaultSort;
+
+    this.transitionToParams({ sort: sortOrder });
+  }
+
   onChangeSearch = e => {
     const query = e.target.value;
 
@@ -226,7 +248,7 @@ export class SearchAndSort extends Component {
     this.transitionToParams({ query: '' });
   };
 
-  onEditRecord = e => {
+  onOpenEditRecord = e => {
     if (e) {
       e.preventDefault();
     }
@@ -311,6 +333,18 @@ export class SearchAndSort extends Component {
     massageNewRecord(record);
 
     return onCreate(record);
+  };
+
+  editRecord = record => {
+    const { onEdit } = this.props;
+
+    return onEdit(record);
+  };
+
+  deleteRecord = record => {
+    const { onDelete } = this.props;
+
+    return onDelete(record);
   };
 
   closeNewRecord = e => {
@@ -408,6 +442,8 @@ export class SearchAndSort extends Component {
       parentResources,
       stripes,
       match,
+      fullWidthContainer,
+      handleEditSuccess,
     } = this.props;
 
     return (
@@ -418,13 +454,17 @@ export class SearchAndSort extends Component {
             <this.connectedViewRecord
               stripes={stripes}
               paneWidth="44%"
+              editContainer={fullWidthContainer}
               parentResources={parentResources}
               connectedSource={source}
               parentMutator={parentMutator}
               editLink={this.craftLayerURL('edit')}
               onClose={this.collapseRecordDetails}
-              onEdit={this.onEditRecord}
+              onOpenEdit={this.onOpenEditRecord}
               onCloseEdit={this.onCloseEditRecord}
+              onEdit={this.editRecord}
+              onDelete={this.deleteRecord}
+              onEditSuccess={handleEditSuccess}
               {...props}
               {...detailProps}
             />
@@ -434,15 +474,13 @@ export class SearchAndSort extends Component {
     );
   }
 
-  renderNewRecordBtn() {
-    const { objectName } = this.props;
-
+  renderNewRecordButton() {
     return (
       <PaneMenu>
         <FormattedMessage id="stripes-smart-components.addNew">
           {ariaLabel => (
             <Button
-              id={`clickable-new${objectName}`}
+              data-test-new-file-extension-button
               href={this.craftLayerURL('create')}
               aria-label={ariaLabel}
               buttonStyle="primary"
@@ -566,7 +604,7 @@ export class SearchAndSort extends Component {
       stripes,
       parentMutator,
       location: { search },
-      newRecordContainer,
+      fullWidthContainer,
       handleCreateSuccess,
     } = this.props;
 
@@ -580,7 +618,7 @@ export class SearchAndSort extends Component {
     return (
       <Layer
         isOpen={isLayerOpen}
-        container={newRecordContainer}
+        container={fullWidthContainer}
       >
         <EditRecordComponent
           id={`${objectName}form-add${objectName}`}
@@ -627,7 +665,7 @@ export class SearchAndSort extends Component {
           actionMenu={actionMenu}
           paneTitle={resultsLabel}
           paneSub={paneSub}
-          lastMenu={this.renderNewRecordBtn()}
+          lastMenu={this.renderNewRecordButton()}
         >
           {this.renderSearch(source)}
           {this.renderSearchResults(source)}

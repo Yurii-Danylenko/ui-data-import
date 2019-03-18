@@ -162,7 +162,7 @@ export class ImportJobs extends Component {
 
     const titleMessageIdEnding = isDropZoneActive ? 'activeUploadTitle' : 'uploadTitle';
     const titleText = this.getMessageById(titleMessageIdEnding);
-    const uploadBtnText = this.getMessageById('uploadBtnText');
+    const uploadButtonText = this.getMessageById('uploadBtnText');
     const errorMessage = showErrorMessage && this.getMessageById('importJobs.errorMessage');
 
     const invalidFilesMessage = (
@@ -181,7 +181,7 @@ export class ImportJobs extends Component {
     return (
       <FileUploader
         title={titleText}
-        uploadBtnText={uploadBtnText}
+        uploadButtonText={uploadButtonText}
         errorMessage={errorMessage}
         isDropZoneActive={isDropZoneActive}
         className={css.upload}
@@ -198,7 +198,10 @@ export class ImportJobs extends Component {
             message={invalidFilesMessage}
             confirmLabel={<FormattedMessage id="ui-data-import.modal.fileExtensions.actionButton" />}
             cancelLabel={<FormattedMessage id="ui-data-import.cancel" />}
-            onConfirm={openDialogWindow}
+            onConfirm={() => {
+              this.hideFilesExtensionsModal();
+              openDialogWindow();
+            }}
             onCancel={this.hideFilesExtensionsModal}
           />
         )}
